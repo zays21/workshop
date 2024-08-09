@@ -1,0 +1,147 @@
+module nft_marketplace::nft_marketplace {
+    use std::signer;
+    use aptos_framework::account;
+    use std::vector;
+    use aptos_framework::managed_coin;
+    use aptos_framework::coin;
+    use aptos_std::type_info;
+    use aptos_std::simple_map::{Self, SimpleMap};
+
+    // NFT struct
+    struct NFT has key, store {
+        id: u64,
+        name: vector<u8>,
+        description: vector<u8>,
+        image_url: vector<u8>,
+        price: u64,
+        owner: address,
+        creator: address,
+    }
+
+    // NFT collection struct
+    struct NFTCollection has key, store {
+        name: vector<u8>,
+        description: vector<u8>,
+        nfts: vector<NFT>,
+    }
+
+    // NFT marketplace struct
+    struct NFTMarketplace has key, store {
+        nft_collections: SimpleMap<address, NFTCollection>,
+        nft_owners: SimpleMap<address, vector<NFT>>,
+    }
+
+    // Initialize the NFT marketplace
+    public entry fun init_marketplace(account: &signer) acquires NFTMarketplace {
+        let account_addr = signer::address_of(account);
+        if (!exists<NFTMarketplace>(account_addr)) {
+            move_to(account, NFTMarketplace { nft_collections: simple_map::create(), nft_owners: simple_map::create() })
+        }
+    }
+
+    // Create a new NFT collection
+    public entry fun create_collection(account: &signer, name: vector<u8>, description: vector<u8>) acquires NFTMarketplace {
+        let account_addr = signer::address_of(account);
+        let marketplace = borrow_global_mut<NFTMarketplace>(account_addr);
+        let collection = NFTCollection { name, description, nfts: vector::empty() };
+        simple_map::add(&mut marketplace.nft_collections, account_addr, collection);
+    }
+
+    // Create a new NFT
+    public entry fun create_nft(account: &signer, collection_addr: address, name: vector<u8>, description: vector<u8>, image_url: vector<u8>, price: u64) acquires NFTMarketplace {
+        let account_addr = signer::address_of(account);
+        let marketplace = borrow_global_mut<NFTMarketplace>(account_addr);
+        let collection = simple_map::borrow_mut(&mut marketplace.nft_collections, collection_addr);
+        let nft = NFT { id: collection.nfts.len(), name, description, image_url, price, owner: account_addr, creator: account_addr };
+        collection.nfts.push(nft);
+        simple_map::add(&mut marketplace.nft_owners, account_addr, vector::singleton(nft));
+    }
+
+    // Buy an NFT
+    public entry fun buy_nft(account: &signer, nft_addr: address) acquires NFTMarketplace {
+        let account_addr = signer::address_of(account);
+        let marketplace = borrow_global_mut<NFTMarketplace>(account_addr);
+        let nft = simple_map::borrow_mut(&mut marketplace.nft_owners, nft_addr);
+        let price = nft.price;
+        let owner = nft.owner;
+        let creator = nft.creator;
+        // Transfer the NFT to the buyer
+        simple_map::remove(&mut marketplace.nft_owners, owner);
+        simple_map::add(&mut marketplace.nft_owners, account_addr, nft);
+        // Transfer the payment to the seller
+        managed_coin::transfer(creator, price);
+    }
+module nft_marketplace::nft_marketplace {
+    use std::signer;
+    use aptos_framework::account;
+    use std::vector;
+    use aptos_framework::managed_coin;
+    use aptos_framework::coin;
+    use aptos_std::type_info;
+    use aptos_std::simple_map::{Self, SimpleMap};
+
+    // NFT struct
+    struct NFT has key, store {
+        id: u64,
+        name: vector<u8>,
+        description: vector<u8>,
+        image_url: vector<u8>,
+        price: u64,
+        owner: address,
+        creator: address,
+    }
+
+    // NFT collection struct
+    struct NFTCollection has key, store {
+        name: vector<u8>,
+        description: vector<u8>,
+        nfts: vector<NFT>,
+    }
+
+    // NFT marketplace struct
+    struct NFTMarketplace has key, store {
+        nft_collections: SimpleMap<address, NFTCollection>,
+        nft_owners: SimpleMap<address, vector<NFT>>,
+    }
+
+    // Initialize the NFT marketplace
+    public entry fun init_marketplace(account: &signer) acquires NFTMarketplace {
+        let account_addr = signer::address_of(account);
+        if (!exists<NFTMarketplace>(account_addr)) {
+            move_to(account, NFTMarketplace { nft_collections: simple_map::create(), nft_owners: simple_map::create() })
+        }
+    }
+
+    // Create a new NFT collection
+    public entry fun create_collection(account: &signer, name: vector<u8>, description: vector<u8>) acquires NFTMarketplace {
+        let account_addr = signer::address_of(account);
+        let marketplace = borrow_global_mut<NFTMarketplace>(account_addr);
+        let collection = NFTCollection { name, description, nfts: vector::empty() };
+        simple_map::add(&mut marketplace.nft_collections, account_addr, collection);
+    }
+
+    // Create a new NFT
+    public entry fun create_nft(account: &signer, collection_addr: address, name: vector<u8>, description: vector<u8>, image_url: vector<u8>, price: u64) acquires NFTMarketplace {
+        let account_addr = signer::address_of(account);
+        let marketplace = borrow_global_mut<NFTMarketplace>(account_addr);
+        let collection = simple_map::borrow_mut(&mut marketplace.nft_collections, collection_addr);
+        let nft = NFT { id: collection.nfts.len(), name, description, image_url, price, owner: account_addr, creator: account_addr };
+        collection.nfts.push(nft);
+        simple_map::add(&mut marketplace.nft_owners, account_addr, vector::singleton(nft));
+    }
+
+    // Buy an NFT
+    public entry fun buy_nft(account: &signer, nft_addr: address) acquires NFTMarketplace {
+        let account_addr = signer::address_of(account);
+        let marketplace = borrow_global_mut<NFTMarketplace>(account_addr);
+        let nft = simple_map::borrow_mut(&mut marketplace.nft_owners, nft_addr);
+        let price = nft.price;
+        let owner = nft.owner;
+        let creator = nft.creator;
+        // Transfer the NFT to the buyer
+        simple_map::remove(&mut marketplace.nft_owners, owner);
+        simple_map::add(&mut marketplace.nft_owners, account_addr, nft);
+        // Transfer the payment to the seller
+        managed_coin::transfer(creator, price);
+    }
+}
